@@ -5,9 +5,10 @@ import Button from "react-bootstrap/Button";
 import { BiTrash } from "react-icons/bi";
 import EditableField from "./EditableField";
 
-const InvoiceItem = (props) => {
-  const { onItemizedItemEdit, currency, onRowDel, items, onRowAdd } = props;
 
+
+const InvoiceItem = (props) => {
+  const { onItemizedItemEdit, currency, onRowDel, items, onRowAdd, convertedPrice } = props;
   const itemTable = items.map((item) => (
     <ItemRow
       key={item.id}
@@ -31,9 +32,6 @@ const InvoiceItem = (props) => {
         </thead>
         <tbody>{itemTable}</tbody>
       </Table>
-      <Button className="fw-bold" onClick={onRowAdd}>
-        Add Item
-      </Button>
     </div>
   );
 };
@@ -55,6 +53,7 @@ const ItemRow = (props) => {
             placeholder: "Item name",
             value: props.item.itemName,
             id: props.item.itemId,
+            readOnly: true
           }}
         />
         <EditableField
@@ -91,7 +90,7 @@ const ItemRow = (props) => {
             props.onItemizedItemEdit(evt, props.item.itemId)
           }
           cellData={{
-            leading: props.currency,
+            leading: props.currency.toString().split(" ")[0],
             type: "number",
             name: "itemPrice",
             min: 1,
@@ -100,6 +99,7 @@ const ItemRow = (props) => {
             textAlign: "text-end",
             value: props.item.itemPrice,
             id: props.item.itemId,
+            readOnly: true
           }}
         />
       </td>

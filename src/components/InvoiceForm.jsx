@@ -14,6 +14,8 @@ import { addInvoice, updateInvoice } from "../redux/invoicesSlice";
 import { Link, useParams, useLocation, useNavigate } from "react-router-dom";
 import generateRandomId from "../utils/generateRandomId";
 import { useInvoiceListData } from "../redux/hooks";
+import ProductSearch from "./ProductSearch";
+import Freecurrencyapi from "@everapi/freecurrencyapi-js";
 
 const InvoiceForm = () => {
   const dispatch = useDispatch();
@@ -22,7 +24,7 @@ const InvoiceForm = () => {
   const navigate = useNavigate();
   const isCopy = location.pathname.includes("create");
   const isEdit = location.pathname.includes("edit");
-
+  const [baseCurrency, setBaseCurrency] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [copyId, setCopyId] = useState("");
   const { getOneInvoice, listSize } = useInvoiceListData();
@@ -65,11 +67,27 @@ const InvoiceForm = () => {
           ],
         }
   );
-
+  const freecurrencyapi = new Freecurrencyapi(
+    process.env.REACT_APP_FREE_CURRENCY_CONVERTER_API
+  );
   useEffect(() => {
     handleCalculateTotal();
   }, []);
 
+  const handleProductSelect = (product) => {
+    const newItem = {
+      itemId: (+new Date() + Math.floor(Math.random() * 999999)).toString(36),
+      itemName: product.name,
+      itemDescription: "",
+      itemPrice: product.price,
+      itemQuantity: 1,
+    };
+    setFormData({
+      ...formData,
+      items: [...formData.items, newItem],
+    });
+    handleCalculateTotal();
+  };
   const handleRowDel = (itemToDelete) => {
     const updatedItems = formData.items.filter(
       (item) => item.itemId !== itemToDelete.itemId
@@ -142,8 +160,44 @@ const InvoiceForm = () => {
     handleCalculateTotal();
   };
 
-  const onCurrencyChange = (selectedOption) => {
-    setFormData({ ...formData, currency: selectedOption.currency });
+  // const onCurrencyChange = (selectedOption) => {
+  //   setFormData({ ...formData, currency: selectedOption.currency });
+  // };
+
+  const onCurrencyChange = async (selectedOption) => {
+    if (formData.currency.toString() == "$") {
+      setBaseCurrency("USD");
+    } else {
+      setBaseCurrency(formData.currency.toString().split(" ")[1]);
+    }
+    try {
+      const response = await freecurrencyapi.latest({
+        base_currency: "USD",
+        currencies: selectedOption.currency.toString().split(" ")[1],
+      });
+      const conversionRate =
+        response.data[selectedOption.currency.toString().split(" ")[1]];
+      console.log(baseCurrency, response);
+      setFormData((prevFormData) => {
+        const subTotal = (prevFormData.subTotal * conversionRate).toFixed(2);
+        const taxAmount = (prevFormData.taxAmount * conversionRate).toFixed(2);
+        const discountAmount = (
+          prevFormData.discountAmount * conversionRate
+        ).toFixed(2);
+        const total = (prevFormData.total * conversionRate).toFixed(2);
+
+        return {
+          ...prevFormData,
+          currency: selectedOption.currency,
+          subTotal,
+          taxAmount,
+          discountAmount,
+          total,
+        };
+      });
+    } catch (error) {
+      console.error("Error fetching conversion rate:", error);
+    }
   };
 
   const openModal = (event) => {
@@ -301,19 +355,23 @@ const InvoiceForm = () => {
                 />
               </Col>
             </Row>
+            <Row className="mb-4">
+              <ProductSearch onProductSelect={handleProductSelect} />
+            </Row>
             <InvoiceItem
               onItemizedItemEdit={onItemizedItemEdit}
               onRowAdd={handleAddEvent}
               onRowDel={handleRowDel}
               currency={formData.currency}
               items={formData.items}
+              convertedPrice={formData.subTotal}
             />
             <Row className="mt-4 justify-content-end">
               <Col lg={6}>
                 <div className="d-flex flex-row align-items-start justify-content-between">
                   <span className="fw-bold">Subtotal:</span>
                   <span>
-                    {formData.currency}
+                    {formData.currency.toString().split(" ")[0]}
                     {formData.subTotal}
                   </span>
                 </div>
@@ -323,7 +381,7 @@ const InvoiceForm = () => {
                     <span className="small">
                       ({formData.discountRate || 0}%)
                     </span>
-                    {formData.currency}
+                    {formData.currency.toString().split(" ")[0]}
                     {formData.discountAmount || 0}
                   </span>
                 </div>
@@ -331,7 +389,7 @@ const InvoiceForm = () => {
                   <span className="fw-bold">Tax:</span>
                   <span>
                     <span className="small">({formData.taxRate || 0}%)</span>
-                    {formData.currency}
+                    {formData.currency.toString().split(" ")[0]}
                     {formData.taxAmount || 0}
                   </span>
                 </div>
@@ -342,7 +400,7 @@ const InvoiceForm = () => {
                 >
                   <span className="fw-bold">Total:</span>
                   <span className="fw-bold">
-                    {formData.currency}
+                    {formData.currency.toString().split(" ")[0]}
                     {formData.total || 0}
                   </span>
                 </div>
@@ -413,14 +471,14 @@ const InvoiceForm = () => {
                 className="btn btn-light my-1"
                 aria-label="Change Currency"
               >
-                <option value="$">USD (United States Dollar)</option>
-                <option value="£">GBP (British Pound Sterling)</option>
-                <option value="¥">JPY (Japanese Yen)</option>
-                <option value="$">CAD (Canadian Dollar)</option>
-                <option value="$">AUD (Australian Dollar)</option>
-                <option value="$">SGD (Singapore Dollar)</option>
-                <option value="¥">CNY (Chinese Renminbi)</option>
-                <option value="₿">BTC (Bitcoin)</option>
+                <option value="$ USD">USD (United States Dollar)</option>
+                <option value="£ GBP">GBP (British Pound Sterling)</option>
+                <option value="¥ JPY">JPY (Japanese Yen)</option>
+                <option value="$ CAD">CAD (Canadian Dollar)</option>
+                <option value="$ AUD">AUD (Australian Dollar)</option>
+                <option value="$ SGD">SGD (Singapore Dollar)</option>
+                <option value="¥ CNY">CNY (Chinese Renminbi)</option>
+                <option value="₿ BTC">BTC (Bitcoin)</option>
               </Form.Select>
             </Form.Group>
             <Form.Group className="my-3">

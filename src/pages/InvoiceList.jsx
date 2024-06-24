@@ -31,9 +31,14 @@ const InvoiceList = () => {
           {isListEmpty ? (
             <div className="d-flex flex-column align-items-center">
               <h3 className="fw-bold pb-2 pb-md-4">No invoices present</h3>
+              <div className="d-flex gap-4">
               <Link to="/create">
                 <Button variant="primary">Create Invoice</Button>
               </Link>
+              <Link to="/products">
+                <Button variant="primary">Products List</Button>
+              </Link>
+              </div>
             </div>
           ) : (
             <div className="d-flex flex-column">
@@ -42,6 +47,9 @@ const InvoiceList = () => {
                 <Link to="/create">
                   <Button variant="primary mb-2 mb-md-4">Create Invoice</Button>
                 </Link>
+              <Link to="/products">
+                <Button variant="primary mb-2 mb-md-4 ">Products List</Button>
+              </Link>
 
                 <div className="d-flex gap-2">
                   <Button variant="dark mb-2 mb-md-4" onClick={handleCopyClick}>
